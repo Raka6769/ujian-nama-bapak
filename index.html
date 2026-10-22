@@ -1,82 +1,215 @@
+
 <!DOCTYPE html>
 <html lang="id">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ujian / Formulir Fullscreen</title>
+  <meta name="theme-color" content="#0f172a">
+  <title>Ujian Online | CBT</title>
+
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    html, body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+    }
+
+    #formContainer {
+      height: 100vh;
+      height: 100dvh;
+    }
+
+    #googleFormIframe {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+  </style>
 </head>
+
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4">
 
   <!-- LAYAR 1: HALAMAN PETUNJUK -->
-  <div id="startScreen" class="max-w-md w-full bg-white p-8 rounded-xl shadow-md text-center">
-    <h1 class="text-2xl font-bold text-slate-800 mb-2">Ujian Online</h1>
-    <p class="text-slate-600 mb-6 text-sm">
-      Formulir ini wajib dikerjakan dalam mode <strong>Fullscreen</strong>. Jika kamu keluar dari mode fullscreen, formulir akan otomatis terkunci.
+  <div
+    id="startScreen"
+    class="max-w-md w-full bg-white p-8 rounded-xl shadow-md text-center"
+  >
+    <div class="text-4xl mb-4">📝</div>
+
+    <h1 class="text-2xl font-bold text-slate-800 mb-2">
+      Ujian Online
+    </h1>
+
+    <p class="text-slate-600 mb-6 text-sm leading-relaxed">
+      Selamat datang di sistem ujian online.
+      Tekan tombol di bawah untuk memulai ujian dalam mode fullscreen.
+      Jika keluar dari fullscreen, halaman ujian akan disembunyikan.
     </p>
-    <button id="btnStart" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200">
-      Mulai Kerjakan (Masuk Fullscreen)
+
+    <button
+      id="btnStart"
+      type="button"
+      class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+    >
+      Mulai Kerjakan
     </button>
+
+    <p
+      id="statusMessage"
+      class="text-sm text-red-600 mt-4 hidden"
+      role="status"
+    ></p>
   </div>
 
   <!-- LAYAR 2: CONTAINER GOOGLE FORM -->
-  <div id="formContainer" class="hidden fixed inset-0 bg-slate-900 flex flex-col w-full h-full z-50">
-    
-    <!-- Bar Navigasi Atas -->
-    <div class="bg-slate-800 text-white px-6 py-3 flex justify-between items-center shadow border-b border-slate-700">
+  <div
+    id="formContainer"
+    class="hidden fixed inset-0 bg-slate-900 flex flex-col w-full z-50"
+  >
+
+    <!-- BAR NAVIGASI ATAS -->
+    <div
+      class="bg-slate-800 text-white px-4 md:px-6 py-3 flex justify-between items-center shadow border-b border-slate-700 shrink-0"
+    >
       <div>
-        <h2 class="font-semibold text-sm md:text-base">Lembar Ujian Google Form</h2>
-        <p class="text-xs text-slate-400">Mode Fullscreen Aktif</p>
+        <h2 class="font-semibold text-sm md:text-base">
+          Lembar Ujian Google Form
+        </h2>
+        <p class="text-xs text-slate-400">
+          Sistem Ujian Online
+        </p>
       </div>
-      <span class="bg-green-500/20 text-green-400 text-xs px-3 py-1 rounded-full border border-green-500/30">
+
+      <span
+        class="bg-green-500/20 text-green-400 text-xs px-3 py-1 rounded-full border border-green-500/30"
+      >
         ● Ujian Berlangsung
       </span>
     </div>
 
-    <!-- Google Form Embedded -->
+    <!-- GOOGLE FORM BARU -->
     <div class="flex-1 w-full bg-white overflow-hidden">
-      <iframe 
+      <iframe
         id="googleFormIframe"
-        src="https://docs.google.com/forms/d/e/1FAIpQLSdU5QN3NRdOjbSK_IFQKATL3QsoUnVOfs_jgSnDRlvwwJEtbw/viewform?embedded=true" 
-        class="w-full h-full border-0"
-        frameborder="0" 
-        marginheight="0" 
-        marginwidth="0">
-        Memuat...
+        src="https://docs.google.com/forms/d/e/1FAIpQLSf5-muFHiLqeJxoopJJtRMA12o4HsfZ-iIgv1xnCoPn2mihXA/viewform?embedded=true"
+        title="Formulir Ujian Online"
+        frameborder="0"
+        marginheight="0"
+        marginwidth="0"
+        loading="eager"
+      >
+        Memuat formulir...
       </iframe>
     </div>
 
   </div>
 
   <script>
-    const startScreen = document.getElementById('startScreen');
-    const formContainer = document.getElementById('formContainer');
-    const btnStart = document.getElementById('btnStart');
+    const startScreen = document.getElementById("startScreen");
+    const formContainer = document.getElementById("formContainer");
+    const btnStart = document.getElementById("btnStart");
+    const statusMessage = document.getElementById("statusMessage");
 
-    function enterFullscreen() {
+    let examStarted = false;
+    let warningShown = false;
+
+    function showStartScreen(message = "") {
+      formContainer.classList.add("hidden");
+      startScreen.classList.remove("hidden");
+
+      statusMessage.textContent = message;
+      statusMessage.classList.toggle("hidden", !message);
+    }
+
+    async function enterFullscreen() {
       const elem = document.documentElement;
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen();
-      } else if (elem.webkitRequestFullscreen) {
-        elem.webkitRequestFullscreen();
-      } else if (elem.msRequestFullscreen) {
-        elem.msRequestFullscreen();
+
+      if (document.fullscreenElement) {
+        return true;
+      }
+
+      if (!elem.requestFullscreen) {
+        return false;
+      }
+
+      try {
+        await elem.requestFullscreen();
+        return Boolean(document.fullscreenElement);
+      } catch (error) {
+        console.error("Fullscreen gagal:", error);
+        return false;
       }
     }
 
-    btnStart.addEventListener('click', () => {
-      enterFullscreen();
-      startScreen.classList.add('hidden');
-      formContainer.classList.remove('hidden');
+    btnStart.addEventListener("click", async () => {
+      statusMessage.classList.add("hidden");
+      btnStart.disabled = true;
+      btnStart.textContent = "Menyiapkan ujian...";
+
+      const fullscreenSuccess = await enterFullscreen();
+
+      /*
+        Tetap izinkan ujian berjalan jika browser
+        tidak mendukung Fullscreen API.
+      */
+      if (!fullscreenSuccess) {
+        showStartScreen(
+          "Fullscreen tidak tersedia atau ditolak browser. " +
+          "Coba gunakan Chrome versi terbaru."
+        );
+
+        btnStart.disabled = false;
+        btnStart.textContent = "Coba Lagi";
+        return;
+      }
+
+      examStarted = true;
+      warningShown = false;
+
+      startScreen.classList.add("hidden");
+      formContainer.classList.remove("hidden");
+
+      btnStart.disabled = false;
+      btnStart.textContent = "Mulai Kerjakan";
     });
 
-    document.addEventListener('fullscreenchange', () => {
-      if (!document.fullscreenElement) {
-        alert("Kamu keluar dari mode Fullscreen! Halaman akan dikembalikan ke layar utama.");
-        formContainer.classList.add('hidden');
-        startScreen.classList.remove('hidden');
+    document.addEventListener("fullscreenchange", () => {
+      if (examStarted && !document.fullscreenElement) {
+        examStarted = false;
+
+        formContainer.classList.add("hidden");
+        startScreen.classList.remove("hidden");
+
+        statusMessage.textContent =
+          "Fullscreen telah ditutup. Tekan tombol mulai untuk masuk kembali.";
+
+        statusMessage.classList.remove("hidden");
+
+        btnStart.textContent = "Masuk Fullscreen Kembali";
+
+        if (!warningShown) {
+          warningShown = true;
+          alert(
+            "Mode fullscreen telah ditutup. " +
+            "Halaman ujian disembunyikan. " +
+            "Masuk kembali untuk melanjutkan."
+          );
+        }
+      } else if (document.fullscreenElement) {
+        warningShown = false;
       }
     });
+
+    /*
+      Catatan:
+      Kode ini tidak bisa mengunci Android,
+      memblokir split screen, atau memblokir
+      floating window secara mutlak.
+    */
   </script>
+
 </body>
 </html>
