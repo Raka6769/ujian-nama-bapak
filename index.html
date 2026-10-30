@@ -54,12 +54,11 @@ button:disabled{opacity:.4;cursor:not-allowed}
   <ul>
     <li>Berpindah tab atau keluar dari halaman ujian</li>
     <li>Membuka aplikasi lain, termasuk floating app atau jendela mengambang</li>
-    <li>Mengaktifkan layar terbelah (split screen) atau mengubah ukuran jendela</li>
-    <li>Keluar dari mode layar penuh</li>
+    <li>Mengaktifkan layar terbelah (split screen) atau mengecilkan jendela</li>
     <li>Me-refresh atau menutup halaman ujian</li>
   </ul>
   <p><b class="wa">Anda diberi maksimal 3 kali peringatan.</b> Pelanggaran ke-4 akan membuat Anda <b class="er">diblokir</b> dan tidak dapat melanjutkan ujian.</p>
-  <p>Durasi ujian: <b id="dur"></b> menit. Ujian akan berjalan dalam mode layar penuh.</p>
+  <p>Durasi ujian: <b id="dur"></b> menit. Jangan mengubah ukuran jendela selama ujian.</p>
   <button id="b-start">Saya mengerti, mulai ujian</button>
 </section>
 
@@ -131,9 +130,8 @@ button:disabled{opacity:.4;cursor:not-allowed}
   function load(){try{return JSON.parse(localStorage.getItem(KEY))}catch(e){return null}}
   function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
   function show(id){["s-login","s-rules","s-exam","s-done","s-block"].forEach(function(x){$(x).classList.toggle("hide",x!==id)})}
-  function fsOn(){return !!(document.fullscreenElement||document.webkitFullscreenElement)}
-  function goFS(){var e=document.documentElement,f=e.requestFullscreen||e.webkitRequestFullscreen;try{var p=f&&f.call(e);if(p&&p.catch)p.catch(function(){})}catch(x){}}
-  function fsSupported(){var e=document.documentElement;return !!(e.requestFullscreen||e.webkitRequestFullscreen)}
+  var base=null;
+  function setBase(){base={w:window.innerWidth,h:window.innerHeight}}
 
   /* ---------- Pelanggaran ---------- */
   function violation(reason){
@@ -156,20 +154,18 @@ button:disabled{opacity:.4;cursor:not-allowed}
     show("s-block");
   }
   $("b-back").onclick=function(){
-    goFS();$("ov").classList.add("hide");paused=false;
+    $("ov").classList.add("hide");paused=false;
     setTimeout(function(){locked=false},1200);
   };
 
   /* ---------- Deteksi ---------- */
   document.addEventListener("visibilitychange",function(){if(document.hidden)violation("Anda meninggalkan halaman ujian (pindah tab atau aplikasi)")});
   window.addEventListener("blur",function(){violation("Fokus jendela ujian hilang (aplikasi lain atau floating app terbuka)")});
-  function onFS(){if(S.active&&!fsOn()&&fsSupported())violation("Anda keluar dari mode layar penuh")}
-  document.addEventListener("fullscreenchange",onFS);
-  document.addEventListener("webkitfullscreenchange",onFS);
   function checkSize(){
     if(!S.active||locked)return;
-    var ratio=(window.innerWidth*window.innerHeight)/(screen.width*screen.height);
-    if(fsSupported()&&fsOn()&&ratio<0.8)violation("Ukuran jendela berubah (terdeteksi layar terbelah)");
+    if(!base)return;
+    var ratio=(window.innerWidth*window.innerHeight)/(base.w*base.h);
+    if(ratio<0.75)violation("Ukuran jendela berubah (terdeteksi layar terbelah)");
   }
   window.addEventListener("resize",function(){setTimeout(checkSize,300)});
   window.addEventListener("orientationchange",function(){setTimeout(checkSize,500)});
@@ -218,7 +214,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
   }
   function enterExam(){
     $("who").textContent=S.name+" ("+S.no+")";
-    show("s-exam");render();startTimer();
+    show("s-exam");setBase();render();startTimer();
   }
   function finish(auto){
     if(!auto&&!confirm("Yakin ingin menyelesaikan ujian? Jawaban tidak dapat diubah lagi."))return;
@@ -240,7 +236,6 @@ button:disabled{opacity:.4;cursor:not-allowed}
     S.name=n;S.no=o;save();$("dur").textContent=DURATION;show("s-rules");
   };
   $("b-start").onclick=function(){
-    goFS();
     S.active=true;S.endAt=Date.now()+DURATION*60000;S.idx=0;S.ans={};S.warn=0;S.log=[];save();
     locked=true;
     setTimeout(function(){locked=false},1500);
